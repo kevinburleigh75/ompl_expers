@@ -42,7 +42,14 @@ namespace SO2
     State interpolate (const State& state1, const State& state2, double tt) const;
     void  interpolate (const State& state1, const State& state2, double tt, State& outState) const;
 
-    void enforceBounds (State& state) const;
+    bool satisfiesBounds(const State& state) const;
+    void enforceBounds  (State& state) const;
+
+    unsigned int getDimension() const;
+
+    double getMaximumExtent() const;
+
+    double getMeasure() const;
 
   private:
     mutable RandomNumberGenerator _rng;
@@ -55,5 +62,7 @@ static bool operator==(const SO2::State& lhs, const SO2::State& rhs)
 static bool operator!=(const SO2::State& lhs, const SO2::State& rhs)
 { return !(lhs == rhs); }
 
+static bool operator<(const SO2::State& lhs, const SO2::State& rhs)
+{ return lhs.theta_rad < rhs.theta_rad; }
 
 #endif // __SO2_STATE_SPACE_H__

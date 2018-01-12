@@ -2,16 +2,22 @@
 #include "GaussianSampler.h"
 #include "RandomNumberGenerator.h"
 #include "RandomStateValidityChecker.h"
+#include "SimpleDiscreteMotionValidator.h"
 
 #include <iostream>
 using namespace std;
 
 int main ()
 {
-  RandomStateValidityChecker<SO2::Space> validityChecker;
+  SO2::Space                                space{};
+  RandomStateValidityChecker<SO2::Space>    validityChecker{1.0};
 
-  SO2::State state;
-  cout << boolalpha << validityChecker.isValid(state);
+  SimpleDiscreteMotionValidator<RandomStateValidityChecker<SO2::Space>> motionValidator{validityChecker, space};
+
+  SO2::State state1 = space.sampleUniform();
+  SO2::State state2 = space.sampleUniform();
+
+  cout << boolalpha << motionValidator.checkMotion(state1, state2) << endl;
 }
 
 #if 0

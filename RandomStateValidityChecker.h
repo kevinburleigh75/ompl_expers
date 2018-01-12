@@ -3,11 +3,12 @@
 
 #include "RandomNumberGenerator.h"
 
-template <typename SpaceType>
+template <typename _SpaceType>
 class RandomStateValidityChecker
 {
 public:
-  typedef typename SpaceType::StateType StateType;
+  typedef          _SpaceType            SpaceType;
+  typedef typename _SpaceType::StateType StateType;
 
   RandomStateValidityChecker (double probOfValid=0.5);
   RandomStateValidityChecker (const  RandomNumberGenerator& rng,

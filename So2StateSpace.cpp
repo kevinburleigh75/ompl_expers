@@ -92,6 +92,9 @@ namespace SO2
     }
   }
 
+  bool Space::satisfiesBounds(const State& state) const
+  { return (state.theta_rad < pi) && (state.theta_rad >= -pi); }
+
   void Space::enforceBounds (State& state) const
   {
     state.theta_rad = fmod(state.theta_rad, two_pi);
@@ -103,4 +106,12 @@ namespace SO2
     }
   }
 
+  unsigned int Space::getDimension() const
+  { return 1; }
+
+  double Space::getMaximumExtent() const
+  { return pi; }
+
+  double Space::getMeasure() const
+  { return two_pi; }
 }
