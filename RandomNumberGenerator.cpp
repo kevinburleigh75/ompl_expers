@@ -5,52 +5,61 @@ using namespace boost::math::double_constants;
 
 RandomNumberGenerator::RandomNumberGenerator ()
   : _generator{std::random_device{}()}
-  , _uniformDist_0_1{0.0, 1.0}
-  , _uniformDist_negPi_pi{-pi, +pi}
-  , _normalDist_0_1{0.0, 1.0}
+  , _uniformRealDist_0_1{0.0, 1.0}
+  , _uniformRealDist_negPi_pi{-pi, +pi}
+  , _normalRealDist_0_1{0.0, 1.0}
 { }
 
 RandomNumberGenerator::RandomNumberGenerator (std::random_device::result_type seed)
   : _generator{seed}
-  , _uniformDist_0_1{0.0, 1.0}
-  , _uniformDist_negPi_pi{-pi, +pi}
-  , _normalDist_0_1{0.0, 1.0}
+  , _uniformRealDist_0_1{0.0, 1.0}
+  , _uniformRealDist_negPi_pi{-pi, +pi}
+  , _normalRealDist_0_1{0.0, 1.0}
 { }
 
 RandomNumberGenerator::RandomNumberGenerator (const RandomNumberGenerator& orig)
   : _generator{orig._generator}
-  , _uniformDist_0_1{orig._uniformDist_0_1}
-  , _uniformDist_negPi_pi{orig._uniformDist_negPi_pi}
-  , _normalDist_0_1{orig._normalDist_0_1}
+  , _uniformRealDist_0_1{orig._uniformRealDist_0_1}
+  , _uniformRealDist_negPi_pi{orig._uniformRealDist_negPi_pi}
+  , _normalRealDist_0_1{orig._normalRealDist_0_1}
 { }
 
 RandomNumberGenerator& RandomNumberGenerator::operator= (const RandomNumberGenerator& orig)
 {
-  _generator            = orig._generator;
-  _uniformDist_0_1      = orig._uniformDist_0_1;
-  _uniformDist_negPi_pi = orig._uniformDist_negPi_pi;
-  _normalDist_0_1       = orig._normalDist_0_1;
+  _generator                = orig._generator;
+  _uniformRealDist_0_1      = orig._uniformRealDist_0_1;
+  _uniformRealDist_negPi_pi = orig._uniformRealDist_negPi_pi;
+  _normalRealDist_0_1       = orig._normalRealDist_0_1;
 
   return *this;
 }
 
 double RandomNumberGenerator::realUniform (double lower, double upper)
-{ return lower + (upper - lower)*_uniformDist_0_1(_generator); }
+{ return lower + (upper - lower)*_uniformRealDist_0_1(_generator); }
 
 double RandomNumberGenerator::realUniform_0_1 ()
-{ return _uniformDist_0_1(_generator); }
+{ return _uniformRealDist_0_1(_generator); }
 
 double RandomNumberGenerator::realUniform_negPi_pi ()
-{ return _uniformDist_negPi_pi(_generator); }
+{ return _uniformRealDist_negPi_pi(_generator); }
+
+double RandomNumberGenerator::intUniform (int lower, int upper)
+{
+  int result;
+  do {
+    result = (int)floor(realUniform((double)lower, (double)(upper + 1)));
+  } while (result > upper);
+  return result;
+}
 
 double RandomNumberGenerator::realNormal (double mean, double stddev)
-{ return mean + stddev*_normalDist_0_1(_generator); }
+{ return mean + stddev*_normalRealDist_0_1(_generator); }
 
 double RandomNumberGenerator::realNormal_0_1 ()
-{ return _normalDist_0_1(_generator); }
+{ return _normalRealDist_0_1(_generator); }
 
 bool RandomNumberGenerator::boolUniform ()
-{ return _uniformDist_0_1(_generator) <= 0.5; }
+{ return _uniformRealDist_0_1(_generator) <= 0.5; }
 
 bool RandomNumberGenerator::boolWithTrueBias (double probOfTrue)
-{ return _uniformDist_0_1(_generator) <= probOfTrue; }
+{ return _uniformRealDist_0_1(_generator) <= probOfTrue; }

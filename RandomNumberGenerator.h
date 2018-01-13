@@ -16,6 +16,8 @@ public:
   double realUniform_0_1 ();
   double realUniform_negPi_pi ();
 
+  double intUniform (int lower, int upper);
+
   double realNormal (double mean, double stddev);
   double realNormal_0_1 ();
 
@@ -24,9 +26,9 @@ public:
 
 private:
     std::mt19937                           _generator;
-    std::uniform_real_distribution<double> _uniformDist_0_1;
-    std::uniform_real_distribution<double> _uniformDist_negPi_pi;
-    std::normal_distribution<double>       _normalDist_0_1;
+    std::uniform_real_distribution<double> _uniformRealDist_0_1;
+    std::uniform_real_distribution<double> _uniformRealDist_negPi_pi;
+    std::normal_distribution<double>       _normalRealDist_0_1;
 };
 
 #endif // __RANDOM_NUMBER_GENERATOR_H__
