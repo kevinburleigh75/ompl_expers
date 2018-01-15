@@ -8,6 +8,8 @@ namespace SO2
   class State
   {
   public:
+    typedef State StateType;
+
     State (double angle_rad=0.0)
       : theta_rad{angle_rad}
     { }
@@ -27,6 +29,8 @@ namespace SO2
     Space (const Space& orig)           = default;
     Space& operator=(const Space& orig) = default;
     ~Space ()                           = default;
+
+    State makeState () const;
 
     State sampleUniform () const;
     void  sampleUniform (State& outState) const;

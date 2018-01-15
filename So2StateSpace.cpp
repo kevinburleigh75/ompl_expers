@@ -17,6 +17,9 @@ namespace SO2
   // Space
   //////////
 
+  State Space::makeState () const
+  { return State{}; }
+
   State Space::sampleUniform () const
   { return State{_rng.realUniform_negPi_pi()}; }
 

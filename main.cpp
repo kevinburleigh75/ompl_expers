@@ -3,21 +3,48 @@
 #include "RandomNumberGenerator.h"
 #include "RandomStateValidityChecker.h"
 #include "SimpleDiscreteMotionValidator.h"
+#include "OmplConcepts.h"
+#include "CompoundStateSpace.h"
+
+#include "ompl/datastructures/NearestNeighborsGNATNoThreadSafety.h"
 
 #include <iostream>
+#include <string>
 using namespace std;
+
+template <>
+void draw (const SO2::Space& obj, ostream& ostr, size_t indent)
+{ ostr << string(indent, ' ') << "SO2::Space" << endl; }
+
+template <>
+void draw (const SO2::State& obj, ostream& ostr, size_t indent)
+{ ostr << string(indent, ' ') << "SO2::State" << endl; }
 
 int main ()
 {
-  SO2::Space                                space{};
-  RandomStateValidityChecker<SO2::Space>    validityChecker{1.0};
+  spaces::Compound::Space compSpace;
+  compSpace.addSubspace(SO2::Space{});
+  compSpace.addSubspace(SO2::Space{});
+  compSpace.addSubspace(SO2::Space{});
+  compSpace.addSubspace(compSpace);
+  compSpace.addSubspace(SO2::Space{});
 
-  SimpleDiscreteMotionValidator<RandomStateValidityChecker<SO2::Space>> motionValidator{validityChecker, space};
+  // cout << "----- begin -----" << endl;
+  // spaces::Compound::Space compSpace;
+  // cout << "----- adding 1 -----" << endl;
+  // compSpace.addSubspace(1);
+  // cout << "----- adding 2.0 -----" << endl;
+  // compSpace.addSubspace(2.0);
+  // cout << "----- adding 'hello' -----" << endl;
+  // compSpace.addSubspace(string{"hello"});
+  // cout << "----- adding combSpace -----" << endl;
+  // compSpace.addSubspace(compSpace);
+  // cout << "----- done -----" << endl;
+  draw(compSpace, cout, 0);
+  cout << "dim = " << compSpace.getDimension() << endl;
 
-  SO2::State state1 = space.sampleUniform();
-  SO2::State state2 = space.sampleUniform();
-
-  cout << boolalpha << motionValidator.checkMotion(state1, state2) << endl;
+  auto compState = compSpace.makeState();
+  draw(compState, cout, 0);
 }
 
 #if 0
