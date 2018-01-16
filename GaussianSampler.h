@@ -17,7 +17,7 @@ namespace Samplers
     GaussianSampler& operator= (const GaussianSampler<SpaceType>& orig) = default;
     ~GaussianSampler ()                                                 = default;
 
-    typename SpaceType::StateType sample () const;
+    bool sample (typename SpaceType::StateType& outState) const;
 
   private:
     SpaceType _space;
@@ -25,25 +25,23 @@ namespace Samplers
   };
 
   template<typename SpaceType>
-  typename SpaceType::StateType GaussianSampler<SpaceType>::sample () const
+  bool GaussianSampler<SpaceType>::sample (typename SpaceType::StateType& outState) const
   {
     typedef typename SpaceType::StateType StateType;
-
-    StateType result{};
 
     bool validSampleFound = false;
     do
     {
       StateType sample1 = _space.sampleUniform();
-      StateType sample2 = _space.sampleUniformNear(sample1, _stddev);
+      StateType sample2 = _space.sampleGaussianNear(sample1, _stddev);
 
       // For the moment, assume that sample1 is invalid and
       // that sample2 is valid.
-      result = sample2;
+      outState = sample2;
       validSampleFound = true;
     } while (!validSampleFound);
 
-    return result;
+    return validSampleFound;
   }
 }
 
