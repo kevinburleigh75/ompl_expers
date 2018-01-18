@@ -4,6 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <any>
 
 template <typename TT>
 static void draw (const TT& obj, ostream& ostr, size_t indent)
@@ -21,8 +22,12 @@ namespace spaces
     //
     //////////
 
+    class Space;
+
     class State
     {
+      friend class Space;
+
     public:
       typedef State StateType;
 
@@ -100,26 +105,41 @@ namespace spaces
         friend void draw (const Substate& substate, ostream& ostr, size_t indent)
         { substate._upSubstateConcept->_draw(ostr, indent); }
 
+        const any& anyOfState () const
+        { return _upSubstateConcept->anyOfState(); }
+
+        any& anyOfState ()
+        { return _upSubstateConcept->anyOfState(); }
+
       private:
         struct SubstateConcept {
           virtual ~SubstateConcept () = default;
           virtual unique_ptr<SubstateConcept> copy () const = 0;
+          virtual const any& anyOfState () const = 0;
+          virtual       any& anyOfState ()       = 0;
+
           virtual void _draw (ostream& ostr, size_t indent) const = 0;
         };
 
         template <typename StateType>
         struct Model final : public SubstateConcept {
           Model (StateType state)
-            : _state(move(state))
+            : _anyOfState{move(state)}
           { }
 
           unique_ptr<SubstateConcept> copy () const override
           { return make_unique<Model>(*this); }
 
-          void _draw (ostream& ostr, size_t indent) const override
-          { draw(_state, ostr, indent); }
+          const any& anyOfState () const override
+          { return _anyOfState; }
 
-          StateType _state;
+          any& anyOfState () override
+          { return _anyOfState; }
+
+          void _draw (ostream& ostr, size_t indent) const override
+          { draw(any_cast<StateType>(_anyOfState), ostr, indent); }
+
+          any _anyOfState;
         };
 
         unique_ptr<SubstateConcept> _upSubstateConcept;
@@ -235,6 +255,9 @@ namespace spaces
         int getDimension () const
         { return _upSubspaceConcept->getDimension(); }
 
+        void sampleUniform (State::Substate& outState) const
+        { _upSubspaceConcept->sampleUniform(outState); }
+
       private:
         struct SubspaceConcept {
           virtual ~SubspaceConcept () = default;
@@ -242,6 +265,7 @@ namespace spaces
           virtual void _draw (ostream& ostr, size_t indent) const = 0;
 
           virtual int getDimension () const = 0;
+          virtual void sampleUniform (State::Substate& outState) const = 0;
         };
 
         template <typename SpaceType>
@@ -259,6 +283,9 @@ namespace spaces
           int getDimension () const override
           { return _space.getDimension(); }
 
+          void sampleUniform (State::Substate& outState) const override
+          { _space.sampleUniform(*any_cast<typename SpaceType::StateType>(&outState.anyOfState())); }
+
           SpaceType _space;
         };
 
@@ -266,6 +293,8 @@ namespace spaces
       };
 
     public:
+      typedef State StateType;
+
       Space ()                             = default;
       Space (const Space& orig)            = default;
       Space (Space&& sink) noexcept        = default;
@@ -299,6 +328,13 @@ namespace spaces
           dimension += subspace.getDimension();
         }
         return dimension;
+      }
+
+      void sampleUniform (State& outState) const
+      {
+        for (int idx=0; idx<_subspaces.size(); ++idx) {
+          _subspaces[idx].sampleUniform(outState._substates[idx]);
+        }
       }
 
     private:

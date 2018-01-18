@@ -18,7 +18,7 @@ void draw (const SO2::Space& obj, ostream& ostr, size_t indent)
 
 template <>
 void draw (const SO2::State& obj, ostream& ostr, size_t indent)
-{ ostr << string(indent, ' ') << "SO2::State" << endl; }
+{ ostr << string(indent, ' ') << "SO2::State (" << obj.theta_rad << ")" << endl; }
 
 int main ()
 {
@@ -45,7 +45,22 @@ int main ()
 
   auto compState = compSpace.makeState();
   draw(compState, cout, 0);
+
+  cout << "----- sample -----" << endl;
+  compSpace.sampleUniform(compState);
+  draw(compState, cout, 0);
 }
+#if 0
+int main ()
+{
+  SO2::Space so2space;
+  Samplers::GaussianSampler sampler(so2space, 3.0);
+
+  SO2::State so2state;
+  sampler.sample(so2state);
+}
+
+#endif
 
 #if 0
 #include "So2StateSpace.h"

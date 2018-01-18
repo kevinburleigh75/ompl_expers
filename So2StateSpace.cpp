@@ -21,7 +21,14 @@ namespace SO2
   { return State{}; }
 
   State Space::sampleUniform () const
-  { return State{_rng.realUniform_negPi_pi()}; }
+  {
+    State outState;
+    sampleUniform(outState);
+    return outState;
+  }
+
+  void Space::sampleUniform (State& outState) const
+  { outState = State{_rng.realUniform_negPi_pi()}; }
 
   State Space::sampleUniformNear (const State& state, double radius) const
   {
