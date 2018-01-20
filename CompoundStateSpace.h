@@ -38,12 +38,12 @@ namespace spaces
         //
         // StateType --> Substate conversion.
         //
-        // Wrap the given StateType object in a Model.  Use move semantics
+        // Wrap the given StateType object in a ConcreteWrapper.  Use move semantics
         // to avoid unnecessary copies and potential exceptions.
         //
         template <typename StateType>
         Substate (StateType sink)
-          : _upSubstateConcept{make_unique<Model<StateType>>(move(sink))}
+          : _upSubstateConcept{make_unique<ConcreteWrapper<StateType>>(move(sink))}
         {
           // cout << "Substate ctor" << endl;
         }
@@ -105,6 +105,14 @@ namespace spaces
         friend void draw (const Substate& substate, ostream& ostr, size_t indent)
         { substate._upSubstateConcept->_draw(ostr, indent); }
 
+        //
+        // These return std::any because there needs to be a
+        // way to polymorphically get the contained State to
+        // the Space that will be manipulating it (after a
+        // downcast, which will throw at runtime if the
+        // State and Space are not compatible).
+        //
+
         const any& anyOfState () const
         { return _upSubstateConcept->anyOfState(); }
 
@@ -122,13 +130,13 @@ namespace spaces
         };
 
         template <typename StateType>
-        struct Model final : public SubstateConcept {
-          Model (StateType state)
+        struct ConcreteWrapper final : public SubstateConcept {
+          ConcreteWrapper (StateType state)
             : _anyOfState{move(state)}
           { }
 
           unique_ptr<SubstateConcept> copy () const override
-          { return make_unique<Model>(*this); }
+          { return make_unique<ConcreteWrapper>(*this); }
 
           const any& anyOfState () const override
           { return _anyOfState; }
@@ -185,12 +193,12 @@ namespace spaces
         //
         // SpaceType --> Subspace conversion.
         //
-        // Wrap the given SpaceType object in a Model.  Use move semantics
+        // Wrap the given SpaceType object in a ConcreteWrapper.  Use move semantics
         // to avoid unnecessary copies and potential exceptions.
         //
         template <typename SpaceType>
         Subspace (SpaceType sink)
-          : _upSubspaceConcept{make_unique<Model<SpaceType>>(move(sink))}
+          : _upSubspaceConcept{make_unique<ConcreteWrapper<SpaceType>>(move(sink))}
         {
           // cout << "Subspace ctor" << endl;
         }
@@ -265,17 +273,18 @@ namespace spaces
           virtual void _draw (ostream& ostr, size_t indent) const = 0;
 
           virtual int getDimension () const = 0;
+
           virtual void sampleUniform (State::Substate& outState) const = 0;
         };
 
         template <typename SpaceType>
-        struct Model final : public SubspaceConcept {
-          Model (SpaceType space)
+        struct ConcreteWrapper final : public SubspaceConcept {
+          ConcreteWrapper (SpaceType space)
             : _space(move(space))
           { }
 
           unique_ptr<SubspaceConcept> copy () const override
-          { return make_unique<Model>(*this); }
+          { return make_unique<ConcreteWrapper>(*this); }
 
           void _draw (ostream& ostr, size_t indent) const override
           { draw(_space, ostr, indent); }
@@ -284,7 +293,10 @@ namespace spaces
           { return _space.getDimension(); }
 
           void sampleUniform (State::Substate& outState) const override
-          { _space.sampleUniform(*any_cast<typename SpaceType::StateType>(&outState.anyOfState())); }
+          {
+            typename SpaceType::StateType& state = *any_cast<typename SpaceType::StateType>(&outState.anyOfState());
+            _space.sampleUniform(state);
+          }
 
           SpaceType _space;
         };
@@ -328,6 +340,13 @@ namespace spaces
           dimension += subspace.getDimension();
         }
         return dimension;
+      }
+
+      State sampleUniform () const
+      {
+        State outState{_protoState};
+        sampleUniform(outState);
+        return outState;
       }
 
       void sampleUniform (State& outState) const
