@@ -1,9 +1,9 @@
 #include "So2StateSpace.h"
 #include "GaussianSampler.h"
-#include "RandomNumberGenerator.h"
-#include "RandomStateValidityChecker.h"
-#include "SimpleDiscreteMotionValidator.h"
-#include "OmplConcepts.h"
+// #include "RandomNumberGenerator.h"
+// #include "RandomStateValidityChecker.h"
+// #include "SimpleDiscreteMotionValidator.h"
+// #include "OmplConcepts.h"
 #include "CompoundStateSpace.h"
 
 #include "ompl/datastructures/NearestNeighborsGNATNoThreadSafety.h"
@@ -29,17 +29,6 @@ int main ()
   compSpace.addSubspace(compSpace);
   compSpace.addSubspace(SO2::Space{});
 
-  // cout << "----- begin -----" << endl;
-  // spaces::Compound::Space compSpace;
-  // cout << "----- adding 1 -----" << endl;
-  // compSpace.addSubspace(1);
-  // cout << "----- adding 2.0 -----" << endl;
-  // compSpace.addSubspace(2.0);
-  // cout << "----- adding 'hello' -----" << endl;
-  // compSpace.addSubspace(string{"hello"});
-  // cout << "----- adding combSpace -----" << endl;
-  // compSpace.addSubspace(compSpace);
-  // cout << "----- done -----" << endl;
   draw(compSpace, cout, 0);
   cout << "dim = " << compSpace.getDimension() << endl;
 
@@ -49,18 +38,29 @@ int main ()
   cout << "----- sample -----" << endl;
   compSpace.sampleUniform(compState);
   draw(compState, cout, 0);
-}
-#if 0
-int main ()
-{
-  SO2::Space so2space;
-  Samplers::GaussianSampler sampler(so2space, 3.0);
 
-  SO2::State so2state;
-  sampler.sample(so2state);
-}
+  SO2::Space so2Space;
+  Samplers::GaussianSampler so2Sampler(so2Space,  3.0);
+  auto so2State = so2Space.makeState();
+  so2Sampler.sample(so2State);
+  draw(so2State, cout, 0);
 
-#endif
+  //so2Sampler.sample(compState); // compile-time error
+
+  cout << "----- sample uniform near -----" << endl;
+  auto compState2 = compSpace.sampleUniformNear(compState, 0.1);
+  draw(compState2, cout, 0);
+
+  cout << "----- sample gaussian near -----" << endl;
+  auto compState3 = compSpace.sampleGaussianNear(compState, 0.1);
+  draw(compState3, cout, 0);
+
+  cout << "----- gaussian sampler -----" << endl;
+  Samplers::GaussianSampler compSampler(move(compSpace), 1.0);
+  auto compState4 = compSpace.makeState();
+  compSampler.sample(compState4);
+  draw(compState, cout, 0);
+}
 
 #if 0
 #include "So2StateSpace.h"

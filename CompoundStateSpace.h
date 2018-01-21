@@ -6,6 +6,10 @@
 #include <vector>
 #include <any>
 
+#include "OmplConcepts.h"
+
+using namespace std;
+
 template <typename TT>
 static void draw (const TT& obj, ostream& ostr, size_t indent)
 { ostr << string(indent, ' ') << obj << endl; }
@@ -41,7 +45,7 @@ namespace spaces
         // Wrap the given StateType object in a ConcreteWrapper.  Use move semantics
         // to avoid unnecessary copies and potential exceptions.
         //
-        template <typename StateType>
+        template <OmplState StateType>
         Substate (StateType sink)
           : _upSubstateConcept{make_unique<ConcreteWrapper<StateType>>(move(sink))}
         {
@@ -91,7 +95,8 @@ namespace spaces
         Substate& operator= (Substate&& sink) noexcept
         {
           // cout << "Substate move assignment" << endl;
-          return *this = sink;
+          _upSubstateConcept = move(sink._upSubstateConcept);
+          return *this;
         }
 
         //
@@ -129,7 +134,7 @@ namespace spaces
           virtual void _draw (ostream& ostr, size_t indent) const = 0;
         };
 
-        template <typename StateType>
+        template <OmplState StateType>
         struct ConcreteWrapper final : public SubstateConcept {
           ConcreteWrapper (StateType state)
             : _anyOfState{move(state)}
@@ -145,7 +150,7 @@ namespace spaces
           { return _anyOfState; }
 
           void _draw (ostream& ostr, size_t indent) const override
-          { draw(any_cast<StateType>(_anyOfState), ostr, indent); }
+          { draw(any_cast<const StateType&>(_anyOfState), ostr, indent); }
 
           any _anyOfState;
         };
@@ -154,14 +159,42 @@ namespace spaces
       };
 
     public:
-      State ()                             = default;
-      State (const State& orig)            = default;
-      State (State&& sink) noexcept        = default;
-      State& operator= (const State& orig) = default;
-      State& operator= (State&& sink)      = default;
-      ~State ()                            = default;
+      State ()
+      {
+        // cout << "State ctor" << endl;
+      }
 
-      template <typename StateType>
+      State (const State& orig)
+        : _substates{orig._substates}
+      {
+        // cout << "State copy ctor" << endl;
+      }
+
+      State (State&& sink) noexcept
+        : _substates{move(sink._substates)}
+      {
+        // cout << "State move ctor" << endl;
+      }
+
+      State& operator= (const State& orig)
+      {
+        // cout << "State assignment" << endl;
+        return *this = State{orig};
+      }
+
+      State& operator= (State&& sink)
+      {
+        // cout << "State move assignment" << endl;
+        _substates = move(sink._substates);
+        return *this;
+      }
+
+      ~State ()
+      {
+        // cout << "State dtor" << endl;
+      }
+
+      template <OmplState StateType>
       void addSubstate (StateType&& sink)
       { _substates.emplace_back(std::forward<StateType>(sink)); }
 
@@ -196,7 +229,7 @@ namespace spaces
         // Wrap the given SpaceType object in a ConcreteWrapper.  Use move semantics
         // to avoid unnecessary copies and potential exceptions.
         //
-        template <typename SpaceType>
+        template <OmplSpace SpaceType>
         Subspace (SpaceType sink)
           : _upSubspaceConcept{make_unique<ConcreteWrapper<SpaceType>>(move(sink))}
         {
@@ -246,7 +279,8 @@ namespace spaces
         Subspace& operator= (Subspace&& sink) noexcept
         {
           // cout << "Subspace move assignment" << endl;
-          return *this = sink;
+          _upSubspaceConcept = move(sink._upSubspaceConcept);
+          return *this;
         }
 
         //
@@ -266,6 +300,12 @@ namespace spaces
         void sampleUniform (State::Substate& outState) const
         { _upSubspaceConcept->sampleUniform(outState); }
 
+        void sampleUniformNear (const State::Substate& state, double distance, State::Substate& outState) const
+        { _upSubspaceConcept->sampleUniformNear(state, distance, outState); }
+
+        void sampleGaussianNear (const State::Substate& state, double stddev, State::Substate& outState) const
+        { _upSubspaceConcept->sampleGaussianNear(state, stddev, outState); }
+
       private:
         struct SubspaceConcept {
           virtual ~SubspaceConcept () = default;
@@ -274,10 +314,12 @@ namespace spaces
 
           virtual int getDimension () const = 0;
 
-          virtual void sampleUniform (State::Substate& outState) const = 0;
+          virtual void sampleUniform      (State::Substate& outState) const = 0;
+          virtual void sampleUniformNear  (const State::Substate& state, double distance, State::Substate& outState) const = 0;
+          virtual void sampleGaussianNear (const State::Substate& state, double stddev,   State::Substate& outState)   const = 0;
         };
 
-        template <typename SpaceType>
+        template <OmplSpace SpaceType>
         struct ConcreteWrapper final : public SubspaceConcept {
           ConcreteWrapper (SpaceType space)
             : _space(move(space))
@@ -294,8 +336,22 @@ namespace spaces
 
           void sampleUniform (State::Substate& outState) const override
           {
-            typename SpaceType::StateType& state = *any_cast<typename SpaceType::StateType>(&outState.anyOfState());
-            _space.sampleUniform(state);
+            typename SpaceType::StateType& casted_outState = any_cast<typename SpaceType::StateType&>(outState.anyOfState());
+            _space.sampleUniform(casted_outState);
+          }
+
+          void sampleUniformNear (const State::Substate& state, double distance, State::Substate& outState) const override
+          {
+            const typename SpaceType::StateType& casted_state    = any_cast<const typename SpaceType::StateType&>(state.anyOfState());
+            typename       SpaceType::StateType& casted_outState = any_cast<typename       SpaceType::StateType&>(outState.anyOfState());
+            _space.sampleUniformNear(casted_state, distance, casted_outState);
+          }
+
+          void sampleGaussianNear (const State::Substate& state, double stddev, State::Substate& outState) const override
+          {
+            const typename SpaceType::StateType& casted_state    = any_cast<const typename SpaceType::StateType&>(state.anyOfState());
+            typename       SpaceType::StateType& casted_outState = any_cast<typename       SpaceType::StateType&>(outState.anyOfState());
+            _space.sampleGaussianNear(casted_state, stddev, casted_outState);
           }
 
           SpaceType _space;
@@ -307,27 +363,65 @@ namespace spaces
     public:
       typedef State StateType;
 
-      Space ()                             = default;
-      Space (const Space& orig)            = default;
-      Space (Space&& sink) noexcept        = default;
-      Space& operator= (const Space& orig) = default;
-      Space& operator= (Space&& sink)      = default;
-      ~Space ()                            = default;
+      Space ()
+      {
+        // cout << "Space ctor" << endl;
+      }
 
-      template <typename SpaceType>
+      Space (const Space& orig)
+        : _protoState{orig._protoState}
+        , _subspaces{orig._subspaces}
+      {
+        // cout << "Space copy ctor" << endl;
+      }
+
+      Space (Space&& sink) noexcept
+        : _protoState{move(sink._protoState)}
+        , _subspaces{move(sink._subspaces)}
+      {
+        // cout << "Space move ctor" << endl;
+      }
+
+      Space& operator= (const Space& orig)
+      {
+        // cout << "Space assignment" << endl;
+        return *this = Space{orig};
+      }
+
+      Space& operator= (Space&& sink)
+      {
+        // cout << "Space move assignment" << endl;
+        return *this = sink;
+      }
+
+      ~Space ()
+      {
+        // cout << "Space dtor" << endl;
+      }
+
+      template <OmplSpace SpaceType>
+      void addSubspace (const SpaceType& space)
+      {
+        // cout << "addSubspace lvalue" << endl;
+        _protoState.addSubstate(space.makeState());
+        _subspaces.emplace_back(space);
+      }
+
+      template <OmplSpace SpaceType>
       void addSubspace (SpaceType&& sink)
       {
+        // cout << "addSubspace rvalue" << endl;
         _protoState.addSubstate(sink.makeState());
         _subspaces.emplace_back(std::forward<SpaceType>(sink));
       }
 
       friend void draw (const Space& space, ostream& ostr, size_t indent)
       {
-        ostr << string(indent, ' ') << "begin compound space" << endl;
+        cout << "begin compound space" << endl;
         for (const auto& subspace : space._subspaces) {
           draw(subspace, ostr, indent + 2);
         }
-        cout << string(indent, ' ') << "end compound space" << endl;
+        cout << "end compound space" << endl;
       }
 
       State makeState () const
@@ -353,6 +447,34 @@ namespace spaces
       {
         for (int idx=0; idx<_subspaces.size(); ++idx) {
           _subspaces[idx].sampleUniform(outState._substates[idx]);
+        }
+      }
+
+      State sampleUniformNear (const State& state, double distance) const
+      {
+        State outState{_protoState};
+        sampleUniformNear(state, distance, outState);
+        return outState;
+      }
+
+      void sampleUniformNear (const State& state, double distance, State& outState) const
+      {
+        for (int idx=0; idx<_subspaces.size(); ++idx) {
+          _subspaces[idx].sampleUniformNear(state._substates[idx], distance, outState._substates[idx]);
+        }
+      }
+
+      State sampleGaussianNear (const State& state, double stddev) const
+      {
+        State outState{_protoState};
+        sampleGaussianNear(state, stddev, outState);
+        return outState;
+      }
+
+      void sampleGaussianNear (const State& state, double stddev, State& outState) const
+      {
+        for (int idx=0; idx<_subspaces.size(); ++idx) {
+          _subspaces[idx].sampleGaussianNear(state._substates[idx], stddev, outState._substates[idx]);
         }
       }
 

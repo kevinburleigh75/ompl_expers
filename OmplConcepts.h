@@ -1,6 +1,8 @@
 #ifndef __OMPL_CONCEPTS_H__
 #define __OMPL_CONCEPTS_H__
 
+#include <type_traits>
+
 template <class T>
 concept bool OmplEqualityComparable() {
   return requires(const T& a, const T& b) {
@@ -27,8 +29,21 @@ concept bool OmplRegular () {
 }
 
 template <class Type>
+concept bool OmplHasStateTypeTypedef () {
+  return requires(const Type& a) {
+    typename Type::StateType;
+  };
+}
+
+template <class Type>
 concept bool OmplState () {
-  return OmplRegular<Type>();
+  // return  OmplRegular<Type>() &&
+  return OmplHasStateTypeTypedef<Type>();
+}
+
+template <class Type>
+concept bool OmplSpace () {
+  return OmplHasStateTypeTypedef<Type>();
 }
 
 #endif // __OMPL_CONCEPTS_H__
